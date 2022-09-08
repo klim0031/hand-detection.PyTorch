@@ -6,7 +6,6 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from data import cfg
 from layers.functions.prior_box import PriorBox
-from utils.nms_wrapper import nms
 import cv2
 from models.faceboxes import FaceBoxes
 from utils.box_utils import decode
@@ -17,11 +16,10 @@ parser = argparse.ArgumentParser(description='FaceBoxes')
 parser.add_argument('-m', '--trained_model', default='weights/Final_HandBoxes.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
-parser.add_argument('--video', default='data/video/hand.avi', type=str, help='dataset')
+parser.add_argument('--video', default='data/video/test.mp4', type=str, help='dataset')
 parser.add_argument('--image', default=None, type=str, help='dataset')
 parser.add_argument('--confidence_threshold', default=0.2, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
-parser.add_argument('--nms_threshold', default=0.2, type=float, help='nms_threshold')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
 args = parser.parse_args()
 
@@ -61,6 +59,37 @@ def load_model(model, pretrained_path, load_to_cpu):
     model.load_state_dict(pretrained_dict, strict=False)
     return model
 
+def NMS(boxes, overlapThresh = 0.2):
+    # Return an empty list, if no boxes given
+    if len(boxes) == 0:
+        return []
+    x1 = boxes[:, 0]  # x coordinate of the top-left corner
+    y1 = boxes[:, 1]  # y coordinate of the top-left corner
+    x2 = boxes[:, 2]  # x coordinate of the bottom-right corner
+    y2 = boxes[:, 3]  # y coordinate of the bottom-right corner
+    # Compute the area of the bounding boxes and sort the bounding
+    # Boxes by the bottom-right y-coordinate of the bounding box
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1) # We add 1, because the pixel at the start as well as at the end counts
+    # The indices of all boxes at start. We will redundant indices one by one.
+    indices = np.arange(len(x1))
+    for i,box in enumerate(boxes):
+        # Create temporary indices
+        temp_indices = indices[indices!=i]
+        # Find out the coordinates of the intersection box
+        xx1 = np.maximum(box[0], boxes[temp_indices,0])
+        yy1 = np.maximum(box[1], boxes[temp_indices,1])
+        xx2 = np.minimum(box[2], boxes[temp_indices,2])
+        yy2 = np.minimum(box[3], boxes[temp_indices,3])
+        # Find out the width and the height of the intersection box
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+        # compute the ratio of overlap
+        overlap = (w * h) / areas[temp_indices]
+        # if the actual boungding box has an overlap bigger than treshold with any other box, remove it's index
+        if np.any(overlap) > overlapThresh:
+            indices = indices[indices != i]
+    #return only the boxes at the remaining indices
+    return boxes[indices].astype(int)
 
 if __name__ == '__main__':
     torch.set_grad_enabled(False)
@@ -119,9 +148,7 @@ if __name__ == '__main__':
 
         # do NMS
         dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
-        #keep = py_cpu_nms(dets, args.nms_threshold)
-        keep = nms(dets, args.nms_threshold, force_cpu=args.cpu)
-        dets = dets[keep, :]
+        dets = NMS(dets)
 
         # keep top-K faster NMS
         dets = dets[:args.keep_top_k, :]
