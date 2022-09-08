@@ -211,9 +211,7 @@ if __name__ == '__main__':
 
                     # do NMS
                     dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
-                    # keep = py_cpu_nms(dets, args.nms_threshold)
-                    keep = nms(dets, args.nms_threshold, force_cpu=args.cpu)
-                    dets = dets[keep, :]
+                    dets = NMS(dets)
 
                     # keep top-K faster NMS
                     dets = dets[:args.keep_top_k, :]
