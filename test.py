@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='FaceBoxes')
 parser.add_argument('-m', '--trained_model', default='weights/Final_HandBoxes.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
-parser.add_argument('--video', default='data/video/test.mp4', type=str, help='dataset')
+parser.add_argument('--video', default='data/video/test2.mp4', type=str, help='dataset')
 parser.add_argument('--image', default=None, type=str, help='dataset')
 parser.add_argument('--confidence_threshold', default=0.2, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
