@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='FaceBoxes')
 parser.add_argument('-m', '--trained_model', default='weights/Final_HandBoxes.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
-parser.add_argument('--video', default='data/video/test2.mp4', type=str, help='dataset')
+parser.add_argument('--video', default='data/video/test_2hands.mp4', type=str, help='dataset')
 parser.add_argument('--image', default=None, type=str, help='dataset')
 parser.add_argument('--confidence_threshold', default=0.2, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
@@ -172,7 +172,8 @@ if __name__ == '__main__':
 
             ret, frame = cap.read()
             if ret:
-                    to_show = frame
+                to_show = frame
+                if (frame%10 == 0).any():    
                     img = np.float32(to_show)
 
                     if resize != 1:
@@ -186,7 +187,9 @@ if __name__ == '__main__':
                     scale = scale.to(device)
 
                     _t['forward_pass'].tic()
-                    out = net(img)  # forward pass
+                    out = net(img)  
+                    
+                    # forward pass
                     _t['forward_pass'].toc()
                     _t['misc'].tic()
                     priorbox = PriorBox(cfg, out[2], (im_height, im_width), phase='test')
@@ -198,36 +201,35 @@ if __name__ == '__main__':
                     boxes = boxes * scale / resize
                     boxes = boxes.cpu().numpy()
                     scores = conf.data.cpu().numpy()[:, 1]
-
+                    
                     # ignore low scores
                     inds = np.where(scores > args.confidence_threshold)[0]
                     boxes = boxes[inds]
                     scores = scores[inds]
-
+                    
                     # keep top-K before NMS
                     order = scores.argsort()[::-1][:args.top_k]
                     boxes = boxes[order]
                     scores = scores[order]
-
+                    
                     # do NMS
                     dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
                     dets = NMS(dets)
-
+                    
                     # keep top-K faster NMS
-                    dets = dets[:args.keep_top_k, :]
                     _t['misc'].toc()
+                    
+                    if len(dets) > 0:
+                        for i in range(dets.shape[0]):
+                            cv2.rectangle(to_show, (dets[i][0], dets[i][1]), (dets[i][2], dets[i][3]), [0, 0, 255], 3)
 
-                    for i in range(dets.shape[0]):
-                        cv2.rectangle(to_show, (dets[i][0], dets[i][1]), (dets[i][2], dets[i][3]), [0, 0, 255], 3)
+                cv2.imshow('image', to_show)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
 
-                    cv2.imshow('image', to_show)
-                    # cv2.waitKey(0)
-                    # cv2.destroyAllWindows()
-
-                    key = cv2.waitKey(1)
-                    if key & 0xFF == ord('q'):
-                        break
-
+                key = cv2.waitKey(1)
+                if key & 0xFF == ord('q'):
+                    break
 
             else:
                 break
