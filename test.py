@@ -16,9 +16,13 @@ parser = argparse.ArgumentParser(description='FaceBoxes')
 parser.add_argument('-m', '--trained_model', default='weights/Final_HandBoxes.pth',
                     type=str, help='Trained state_dict file path to open')
 parser.add_argument('--cpu', action="store_true", default=False, help='Use cpu inference')
+<<<<<<< HEAD
 parser.add_argument('--video', default='data/video/test_2hands.mp4', type=str, help='dataset')
+=======
+parser.add_argument('--video', default='data/video/test_phonecam.mp4', type=str, help='dataset')
+>>>>>>> be50785a9d1a229e67d05059dcc778cb003a4222
 parser.add_argument('--image', default=None, type=str, help='dataset')
-parser.add_argument('--confidence_threshold', default=0.2, type=float, help='confidence_threshold')
+parser.add_argument('--confidence_threshold', default=0.9, type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
 args = parser.parse_args()
@@ -206,6 +210,7 @@ if __name__ == '__main__':
                     inds = np.where(scores > args.confidence_threshold)[0]
                     boxes = boxes[inds]
                     scores = scores[inds]
+<<<<<<< HEAD
                     
                     # keep top-K before NMS
                     order = scores.argsort()[::-1][:args.top_k]
@@ -217,15 +222,36 @@ if __name__ == '__main__':
                     dets = NMS(dets)
                     
                     # keep top-K faster NMS
+=======
+
+                    # do NMS
+                    dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
+                    dets = NMS(dets)
+
+>>>>>>> be50785a9d1a229e67d05059dcc778cb003a4222
                     _t['misc'].toc()
                     
                     if len(dets) > 0:
                         for i in range(dets.shape[0]):
                             cv2.rectangle(to_show, (dets[i][0], dets[i][1]), (dets[i][2], dets[i][3]), [0, 0, 255], 3)
 
+<<<<<<< HEAD
                 cv2.imshow('image', to_show)
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
+=======
+                    if len(dets) > 0:
+                        for i in range(dets.shape[0]):
+                            cv2.rectangle(to_show, (dets[i][0], dets[i][1]), (dets[i][2], dets[i][3]), [0, 0, 255], 3)
+
+                    cv2.imshow('image', to_show)
+                    # cv2.waitKey(0)
+                    # cv2.destroyAllWindows()
+
+                    key = cv2.waitKey(1)
+                    if key & 0xFF == ord('q'):
+                        break
+>>>>>>> be50785a9d1a229e67d05059dcc778cb003a4222
 
                 key = cv2.waitKey(1)
                 if key & 0xFF == ord('q'):
